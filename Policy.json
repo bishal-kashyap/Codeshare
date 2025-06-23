@@ -13,3 +13,7 @@ locals {
 }
 
 name = "Enableloggingpolicy${replace(local.suffix, " ", "")}"
+
+
+
+name = "Enableloggingpolicy${replace(trim(split("(", split("for ", each.value.properties.displayName)[1])[0], " "), " ", "")}"
