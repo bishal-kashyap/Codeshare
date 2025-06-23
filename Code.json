@@ -1,0 +1,28 @@
+{
+  "mode": "All",
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "type",
+          "equals": "Microsoft.Authorization/roleAssignments"
+        },
+        {
+          "field": "Microsoft.Authorization/roleAssignments/principalType",
+          "in": ["User", "Group", "ServicePrincipal"]
+        },
+        {
+          "field": "Microsoft.Authorization/roleAssignments/principalId",
+          "notLike": "[concat(subscription().id, '/*')]"
+        },
+        {
+          "field": "Microsoft.Authorization/roleAssignments.scope",
+          "like": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', '*', '/providers/Microsoft.Compute/galleries/*')]"
+        }
+      ]
+    },
+    "then": {
+      "effect": "deny"
+    }
+  }
+}
