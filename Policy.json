@@ -1,0 +1,15 @@
+name = "Enableloggingpolicy${replace(
+  trim(
+    split("(", split("for ", each.value.properties.displayName)[1])[0]
+  ),
+  " ",
+  ""
+)}"
+
+
+
+locals {
+  suffix = trim(split("(", split("for ", each.value.properties.displayName)[1])[0])
+}
+
+name = "Enableloggingpolicy${replace(local.suffix, " ", "")}"
