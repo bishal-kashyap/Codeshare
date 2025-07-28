@@ -1,28 +1,9 @@
-{
-  "mode": "All",
-  "policyRule": {
-    "if": {
-      "allOf": [
-        {
-          "field": "type",
-          "equals": "Microsoft.Authorization/roleAssignments"
-        },
-        {
-          "field": "Microsoft.Authorization/roleAssignments/principalType",
-          "in": ["User", "Group", "ServicePrincipal"]
-        },
-        {
-          "field": "Microsoft.Authorization/roleAssignments/principalId",
-          "notLike": "[concat(subscription().id, '/*')]"
-        },
-        {
-          "field": "Microsoft.Authorization/roleAssignments.scope",
-          "like": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', '*', '/providers/Microsoft.Compute/galleries/*')]"
-        }
-      ]
-    },
-    "then": {
-      "effect": "deny"
-    }
-  }
+$definitionIds = @(
+    "/providers/Microsoft.Management/managementGroups/my-mg/providers/Microsoft.Authorization/policyDefinitions/abcd1234",
+    "/providers/Microsoft.Management/managementGroups/my-mg/providers/Microsoft.Authorization/policyDefinitions/xyz9876"
+)
+
+foreach ($id in $definitionIds) {
+    $policy = Get-AzPolicyDefinition -Id $id
+    Write-Output "Policy Name: $($policy.Properties.DisplayName)"
 }
