@@ -1,19 +1,15 @@
-name = "Enableloggingpolicy${replace(
-  trim(
-    split("(", split("for ", each.value.properties.displayName)[1])[0]
-  ),
-  " ",
-  ""
-)}"
+module "scaling_plan_association" {
+  for_each = {
+    for sp, hps in var.tfvars.scaling_plan_association :
+    for hp in hps :
+    "${sp}-${hp}" => {
+      scaling_plan = module.scaling_plan[sp].scaling_plan_id
+      host_pool    = module.host_pool[hp].host_pool_id
+    }
+  }
 
+  source = "./../resource_modules/avd_scaling_plan_association"
 
-
-locals {
-  suffix = trim(split("(", split("for ", each.value.properties.displayName)[1])[0])
+  host_pool_id    = each.value.host_pool
+  scaling_plan_id = each.value.scaling_plan
 }
-
-name = "Enableloggingpolicy${replace(local.suffix, " ", "")}"
-
-
-
-name = "Enableloggingpolicy${replace(trim(split("(", split("for ", each.value.properties.displayName)[1])[0], " "), " ", "")}"
