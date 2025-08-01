@@ -1,16 +1,14 @@
-module "scaling_plan_association" {
-  source = "../resource_modules/avd_scaling_plan_association"
-  for_each = {
-    for sp_name, hp_list in var.scaling_plan_association :
-    # create a flattened map like: {"SP1-HP1" = {...}, "SP1-HP2" = {...}}
-    for hp_name in hp_list :
-    "${sp_name}-${hp_name}" => {
-      scaling_plan_name = sp_name
-      host_pool_name    = hp_name
-    }
+for_each = {
+  for pair in flatten([
+    for sp_name, hp_list in var.scaling_plan_association : [
+      for hp_name in hp_list : {
+        key               = "${sp_name}-${hp_name}"
+        scaling_plan_name = sp_name
+        host_pool_name    = hp_name
+      }
+    ]
+  ]) : pair.key => {
+    scaling_plan_name = pair.scaling_plan_name
+    host_pool_name    = pair.host_pool_name
   }
-
-  scaling_plan_id = module.scaling_plan[each.value.scaling_plan_name].scaling_plan_id
-  host_pool_id    = module.host_pool[each.value.host_pool_name].host_pool_id
-  enabled         = true
 }
