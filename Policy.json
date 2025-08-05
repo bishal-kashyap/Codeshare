@@ -1,35 +1,24 @@
 provider "azapi" {}
 
-# Query existing subscriptions
 data "azapi_resource_list" "subs" {
   type                   = "Microsoft.Subscription/Subscriptions@2021-01-01"
   response_export_values = ["displayName"]
 }
 
-# Check if name exists (case-insensitive)
 locals {
-  sub_name_normalized = trimspace(lower(var.subscription_name))
-  name_exists = length([
+  existing_subscription_names = [
     for s in try(data.azapi_resource_list.subs.output.value, []) :
-    s if trimspace(lower(s.displayName)) == local.sub_name_normalized
-  ]) > 0
+    trimspace(lower(s.displayName))
+  ]
 }
 
-# Standalone validation step
-resource "null_resource" "validate_subscription_name" {
-  triggers = {
-    subscription_name = var.subscription_name
-    name_exists       = tostring(local.name_exists)
-  }
 
-  provisioner "local-exec" {
-    command = <<EOT
-      if [ "${local.name_exists}" = "true" ]; then
-        echo "ERROR: Subscription name '${var.subscription_name}' already exists in this tenant."
-        exit 1
-      else
-        echo "Subscription name '${var.subscription_name}' is available."
-      fi
-    EOT
+variable "subscription_name" {
+  type = string
+
+  validation {
+    condition     = !contains(local.existing_subscription_names, trimspace(lower(var.subscription_name)))
+    error_message = "A subscription with the name '${var.subscription_name}' already exists in this tenant."
   }
-  }
+}
+
