@@ -2,12 +2,15 @@
   displayName: "Validate subscription name is unique"
   inputs:
     azureSubscription: $(serviceConnection)
-    scriptType: pscore
+    scriptType: bash
     scriptLocation: inlineScript
     inlineScript: |
-      $ErrorActionPreference = 'Stop'
-      $SubscriptionName = "$(subscription_name)"
-      # --- paste the script body here OR dot-source from a file ---
-      $subs = az account list --all -o json | ConvertFrom-Json
-      $match = $subs | Where-Object { ($_.name).Trim() -ieq $SubscriptionName.Trim() }
-      if ($match) { Write-Error "Subscription '$SubscriptionName' already exists."; exit 1 } else { Write-Host "OK"; exit 0 }
+      set -e
+      name="$(subscription_name)"
+      echo "Checking for existing subscription named '$name'..."
+      exists=$(az account list --all --query "[?tolower(trim(name))=='${name,,}'] | length(@)")
+      if [ "$exists" -gt 0 ]; then
+        echo "Subscription '$name' already exists."; exit 1
+      else
+        echo "No existing subscription named '$name' found."
+      fi
