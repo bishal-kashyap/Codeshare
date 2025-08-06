@@ -15,3 +15,23 @@
       else
         echo "✅ No existing subscription named '$name'."
       fi
+
+
+- task: AzureCLI@2
+  displayName: "Validate subscription name is unique"
+  inputs:
+    azureSubscription: $(serviceConnection)
+    scriptType: bash
+    scriptLocation: inlineScript
+    inlineScript: |
+      set -e
+      # Read subscription_name directly from tfvars
+      name=$(grep '^subscription_name' path/to/your.tfvars | awk -F'"' '{print $2}')
+      echo "Checking subscription: $name"
+
+      if az account list --all --query "[].name" -o tsv | grep -i -x "$name" >/dev/null; then
+        echo "❌ Subscription '$name' already exists."
+        exit 1
+      else
+        echo "✅ No existing subscription named '$name'."
+      fi
