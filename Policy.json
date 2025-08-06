@@ -1,24 +1,13 @@
-provider "azapi" {}
-
-data "azapi_resource_list" "subs" {
-  type                   = "Microsoft.Subscription/Subscriptions@2021-01-01"
-  response_export_values = ["displayName"]
-}
-
-locals {
-  existing_subscription_names = [
-    for s in try(data.azapi_resource_list.subs.output.value, []) :
-    trimspace(lower(s.displayName))
-  ]
-}
-
-
-variable "subscription_name" {
-  type = string
-
-  validation {
-    condition     = !contains(local.existing_subscription_names, trimspace(lower(var.subscription_name)))
-    error_message = "A subscription with the name '${var.subscription_name}' already exists in this tenant."
-  }
-}
-
+- task: AzureCLI@2
+  displayName: "Validate subscription name is unique"
+  inputs:
+    azureSubscription: $(serviceConnection)
+    scriptType: pscore
+    scriptLocation: inlineScript
+    inlineScript: |
+      $ErrorActionPreference = 'Stop'
+      $SubscriptionName = "$(subscription_name)"
+      # --- paste the script body here OR dot-source from a file ---
+      $subs = az account list --all -o json | ConvertFrom-Json
+      $match = $subs | Where-Object { ($_.name).Trim() -ieq $SubscriptionName.Trim() }
+      if ($match) { Write-Error "Subscription '$SubscriptionName' already exists."; exit 1 } else { Write-Host "OK"; exit 0 }
