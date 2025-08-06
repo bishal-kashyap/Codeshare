@@ -1,32 +1,17 @@
 - task: AzureCLI@2
   displayName: "Validate subscription name is unique"
   inputs:
-    azureSubscription: $(serviceConnection)  # Replace with your actual service connection name
+    azureSubscription: R-CSSPZ-MI-MAN-SF-SC-PRD-001
     scriptType: bash
     scriptLocation: inlineScript
+    workingDirectory: '$(System.DefaultWorkingDirectory)/Azure_Subscription/env'
     inlineScript: |
       set -e
-      name="$(subscription_name)"
-      echo "Checking subscription: $name"
+      tfvarsfile="CSPZ_AZR-TEST-EUC-AVD.tfvars"
 
-      if az account list --all --query "[].name" -o tsv | grep -i -x "$name" >/dev/null; then
-        echo "❌ Subscription '$name' already exists."
-        exit 1
-      else
-        echo "✅ No existing subscription named '$name'."
-      fi
+      # Extract subscription_name from HCL map style tfvars
+      name=$(grep -E '^[[:space:]]*subscription_name[[:space:]]*=' "$tfvarsfile" | sed -E 's/^[^"]*"([^"]*)".*/\1/')
 
-
-- task: AzureCLI@2
-  displayName: "Validate subscription name is unique"
-  inputs:
-    azureSubscription: $(serviceConnection)
-    scriptType: bash
-    scriptLocation: inlineScript
-    inlineScript: |
-      set -e
-      # Read subscription_name directly from tfvars
-      name=$(grep '^subscription_name' path/to/your.tfvars | awk -F'"' '{print $2}')
       echo "Checking subscription: $name"
 
       if az account list --all --query "[].name" -o tsv | grep -i -x "$name" >/dev/null; then
