@@ -1,16 +1,17 @@
 - task: AzureCLI@2
   displayName: "Validate subscription name is unique"
   inputs:
-    azureSubscription: $(serviceConnection)
+    azureSubscription: $(serviceConnection)  # Replace with your actual service connection name
     scriptType: bash
     scriptLocation: inlineScript
     inlineScript: |
       set -e
       name="$(subscription_name)"
-      echo "Checking for existing subscription named '$name'..."
-      exists=$(az account list --all --query "[?tolower(trim(name))=='${name,,}'] | length(@)")
-      if [ "$exists" -gt 0 ]; then
-        echo "Subscription '$name' already exists."; exit 1
+      echo "Checking subscription: $name"
+
+      if az account list --all --query "[].name" -o tsv | grep -i -x "$name" >/dev/null; then
+        echo "❌ Subscription '$name' already exists."
+        exit 1
       else
-        echo "No existing subscription named '$name' found."
+        echo "✅ No existing subscription named '$name'."
       fi
