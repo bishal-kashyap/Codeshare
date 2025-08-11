@@ -1,40 +1,30 @@
-trigger:
-- "*"
-
-pool:
-  vmImage: "ubuntu-latest"
-
 steps:
 - checkout: self
-  persistCredentials: true   # needed to push with System.AccessToken
+  persistCredentials: true
 
 - bash: |
     set -euo pipefail
-
-    # Make the repo path "safe" for git in CI
     git config --global --add safe.directory "$(Build.SourcesDirectory)"
 
     echo "Formatting Terraform files..."
-    terraform fmt -recursive -diff -write=true
+    terraform fmt -recursive
 
     echo "Checking for changes..."
     if git diff --quiet; then
-      echo "No formatting changes."
+      echo "No changes to commit."
       exit 0
     fi
 
-    echo "Committing changes..."
+    echo "Configuring Git..."
     git config user.name  "azdo-bot"
     git config user.email "azdo-bot@local"
 
     git add -A
     git commit -m "chore(fmt): terraform auto-format [skip ci]"
 
-    # Push to the same branch
-    echo "Pushing changes..."
-    git push origin HEAD:$(Build.SourceBranchName)
-  displayName: "terraform fmt + auto-commit"
+    # Explicitly use System.AccessToken in push URL
+    git push https://$(System.AccessToken)@dev.azure.com/$(System.CollectionUri#https://dev.azure.com/)$(Build.Repository.Name).git HEAD:$(Build.SourceBranchName)
+  displayName: "terraform fmt + auto-push"
   env:
-    # Provided automatically; persistCredentials:true wires it into git
     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-  condition: ne(variables['Build.Reason'], 'PullRequest')  # avoid pushing on PRs (esp. from forks)
+  condition: ne(variables['Build.Reason'], 'PullRequest')
