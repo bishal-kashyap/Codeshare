@@ -1,22 +1,40 @@
-- task: AzureCLI@2
-  displayName: "Validate subscription name is unique"
-  inputs:
-    azureSubscription: R-CSSPZ-MI-MAN-SF-SC-PRD-001
-    scriptType: bash
-    scriptLocation: inlineScript
-    workingDirectory: '$(System.DefaultWorkingDirectory)/Azure_Subscription/env'
-    inlineScript: |
-      set -e
-      tfvarsfile="CSPZ_AZR-TEST-EUC-AVD.tfvars"
+trigger:
+- "*"
 
-      # Extract subscription_name from HCL map style tfvars
-      name=$(grep -E '^[[:space:]]*subscription_name[[:space:]]*=' "$tfvarsfile" | sed -E 's/^[^"]*"([^"]*)".*/\1/')
+pool:
+  vmImage: "ubuntu-latest"
 
-      echo "Checking subscription: $name"
+steps:
+- checkout: self
+  persistCredentials: true   # needed to push with System.AccessToken
 
-      if az account list --all --query "[].name" -o tsv | grep -i -x "$name" >/dev/null; then
-        echo "❌ Subscription '$name' already exists."
-        exit 1
-      else
-        echo "✅ No existing subscription named '$name'."
-      fi
+- bash: |
+    set -euo pipefail
+
+    # Make the repo path "safe" for git in CI
+    git config --global --add safe.directory "$(Build.SourcesDirectory)"
+
+    echo "Formatting Terraform files..."
+    terraform fmt -recursive -diff -write=true
+
+    echo "Checking for changes..."
+    if git diff --quiet; then
+      echo "No formatting changes."
+      exit 0
+    fi
+
+    echo "Committing changes..."
+    git config user.name  "azdo-bot"
+    git config user.email "azdo-bot@local"
+
+    git add -A
+    git commit -m "chore(fmt): terraform auto-format [skip ci]"
+
+    # Push to the same branch
+    echo "Pushing changes..."
+    git push origin HEAD:$(Build.SourceBranchName)
+  displayName: "terraform fmt + auto-commit"
+  env:
+    # Provided automatically; persistCredentials:true wires it into git
+    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+  condition: ne(variables['Build.Reason'], 'PullRequest')  # avoid pushing on PRs (esp. from forks)
